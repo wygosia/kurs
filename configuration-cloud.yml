@@ -18,8 +18,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: broker
-  labels:
-    app-name: broker
 spec:
   replicas: 1
   selector:
@@ -62,7 +60,7 @@ kind: Deployment
 metadata:
   name: configuration-server
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app-name: configuration-server
@@ -109,7 +107,7 @@ spec:
   accessModes:
     - ReadWriteMany
   hostPath:
-    path: /tmp/departments
+    path: /tmp/departments_db
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -127,7 +125,7 @@ kind: Deployment
 metadata:
   name: departments-postgres-server
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app-name: departments-postgres-server
@@ -141,7 +139,11 @@ spec:
           image: postgres:11.1
           ports:
             - containerPort: 5432
+              name: postgres
               protocol: TCP
+          env:
+            - name: POSTGRES_DB
+              value: departments
           envFrom:
             - configMapRef:
                 name: cloud-config
@@ -160,75 +162,9 @@ metadata:
 spec:
   ports:
     - port: 5432
-      targetPort: 5432
+      targetPort: postgres
   selector:
     app-name: departments-postgres-server
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: users-volume
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteMany
-  hostPath:
-    path: /tmp/users
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: users-volume
-spec:
-  resources:
-    requests:
-      storage: 1Gi
-  accessModes:
-    - ReadWriteMany
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: users-postgres-server
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app-name: users-postgres-server
-  template:
-    metadata:
-      labels:
-        app-name: users-postgres-server
-    spec:
-      containers:
-        - name: postgres
-          image: postgres:11.1
-          ports:
-            - containerPort: 5432
-              protocol: TCP
-          envFrom:
-            - configMapRef:
-                name: cloud-config
-          volumeMounts:
-            - mountPath: /var/lib/postgresql/data
-              name: storage
-      volumes:
-        - name: storage
-          persistentVolumeClaim:
-            claimName: users-volume
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: users-postgres-server-service
-spec:
-  ports:
-    - port: 5432
-      targetPort: 5432
-  selector:
-    app-name: users-postgres-server
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -253,13 +189,13 @@ spec:
           envFrom:
             - configMapRef:
                 name: cloud-config
-          livenessProbe:
-            periodSeconds: 10
-            failureThreshold: 3
-            initialDelaySeconds: 10
-            httpGet:
-              port: 8000
-              path: /swagger-ui.html
+#          livenessProbe:
+#            periodSeconds: 10
+#            failureThreshold: 3
+#            initialDelaySeconds: 10
+#            httpGet:
+#              port: 8000
+#              path: /swagger-ui.html
 ---
 apiVersion: v1
 kind: Service
@@ -271,6 +207,75 @@ spec:
       targetPort: http
   selector:
     app-name: departments
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: users-volume
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: /tmp/users_db
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: users-volume
+spec:
+  resources:
+    requests:
+      storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users-postgres-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app-name: users-postgres-server
+  template:
+    metadata:
+      labels:
+        app-name: users-postgres-server
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:11.1
+          ports:
+            - containerPort: 5432
+              name: postgres
+              protocol: TCP
+          env:
+            - name: POSTGRES_DB
+              value: users
+          envFrom:
+            - configMapRef:
+                name: cloud-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: storage
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: users-volume
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-postgres-server-service
+spec:
+  ports:
+    - port: 5432
+      targetPort: postgres
+  selector:
+    app-name: users-postgres-server
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -295,13 +300,13 @@ spec:
           envFrom:
             - configMapRef:
                 name: cloud-config
-          livenessProbe:
-            periodSeconds: 10
-            failureThreshold: 3
-            initialDelaySeconds: 10
-            httpGet:
-              port: 8001
-              path: /swagger-ui.html
+#          livenessProbe:
+#            periodSeconds: 10
+#            failureThreshold: 3
+#            initialDelaySeconds: 10
+#            httpGet:
+#              port: 8001
+#              path: /swagger-ui.html
 ---
 apiVersion: v1
 kind: Service
