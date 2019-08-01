@@ -379,7 +379,7 @@ spec:
             backend:
               serviceName: users-service
               servicePort: 80
-          - path: /zipkin(/|$)(.*)
+          - path: /zipkin
             backend:
               serviceName: zipkin-server-service
               servicePort: 80
