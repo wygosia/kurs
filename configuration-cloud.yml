@@ -20,16 +20,16 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: configuration-server
+  name: config-server
 spec:
   replicas: 4
   selector:
     matchLabels:
-      app-name: configuration-server
+      app-name: config-server
   template:
     metadata:
       labels:
-        app-name: configuration-server
+        app-name: config-server
     spec:
       containers:
         - name: configuration-server
@@ -82,10 +82,10 @@ metadata:
 spec:
   type: LoadBalancer
   selector:
-    app-name: configuration-server
+    app-name: config-server
   ports:
     - port: 8888
-      targetPort: configuration-server
+      targetPort: config-server
 ---
 
 apiVersion: v1
