@@ -11,7 +11,8 @@ data:
   DEFAULT_PROFILE: production
   POSTGRES_USER: admin
   POSTGRES_PASSWORD: admin
-  POSTGRES_DB: departments
+  DEPARTMENTS_POSTGRES_DB: departments
+  USERS_POSTGRES_DB: users
   CONFIGURATION_SERVER: configuration-server-service
   CONFIGURATION_SERVER_PORT: '8888'
 ---
@@ -126,16 +127,16 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres-server
+  name: departments-postgres-server
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app-name: postgres-server
+      app-name: departments-postgres-server
   template:
     metadata:
       labels:
-        app-name: postgres-server
+        app-name: departments-postgres-server
     spec:
       containers:
         - name: postgres
@@ -157,13 +158,79 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres-server-service
+  name: departments-postgres-server-service
 spec:
   ports:
     - port: 5432
       targetPort: 5432
   selector:
-    app-name: postgres-server
+    app-name: departments-postgres-server
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: users-volume
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: /tmp/users
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: users-volume
+spec:
+  resources:
+    requests:
+      storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users-postgres-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app-name: users-postgres-server
+  template:
+    metadata:
+      labels:
+        app-name: users-postgres-server
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:11.1
+          ports:
+            - containerPort: 5432
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: cloud-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: storage
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: users-volume
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-postgres-server-service
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app-name: users-postgres-server
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -206,3 +273,45 @@ spec:
       targetPort: http
   selector:
     app-name: departments
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app-name: users
+  template:
+    metadata:
+      labels:
+        app-name: users
+    spec:
+      containers:
+        - name: users
+          image: landrzejewski/users
+          ports:
+            - containerPort: 8001
+              name: http
+          envFrom:
+            - configMapRef:
+                name: cloud-config
+          livenessProbe:
+            periodSeconds: 10
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            httpGet:
+              port: 8001
+              path: /swagger-ui.html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-service
+spec:
+  ports:
+    - port: 8001
+      targetPort: http
+  selector:
+    app-name: users
