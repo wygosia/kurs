@@ -33,14 +33,12 @@ spec:
     spec:
       containers:
         - name: configuration-server
-          image: wiewioor222/configuration_server_training
+          image: landrzejewski/departments
           ports:
             - containerPort: 8888
           envFrom:
             - configMapRef:
                 name: configuration-map
-
-
 ---
 apiVersion: v1
 kind: Service
@@ -54,13 +52,53 @@ spec:
     - port: 9092
       targetPort: kafka
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: departments-server
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app-name: departments-server
+  template:
+    metadata:
+      labels:
+        app-name: departments-server
+    spec:
+      containers:
+        - name: departments-server
+          image: landrzejewski/configuration-server
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: configuration-map
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: configuration-server-service
+spec:
+  type: LoadBalancer
+  selector:
+    app-name: configuration-server
+  ports:
+    - port: 8888
+      targetPort: configuration-server
+---
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: configuration-map
 data:
+  KAFKA_ADVERTISED_HOST_NAME: localhost
+  KAFKA_ZOOKEEPER_CONNECT: localhost:2181
   KAFKA_SERVER: 'configuration-service'
   KAFKA_PORT: '9092'
+  CONFIGURATION_SERVER: configuration-server-service
+  CONFIGURATION_SERVER_PORT: 8888
   SLEEP_TIME: '1'
   DEFAULT_PROFILE: 'production'
   
