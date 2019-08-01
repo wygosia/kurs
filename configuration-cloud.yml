@@ -22,7 +22,7 @@ kind: Deployment
 metadata:
   name: config-server
 spec:
-  replicas: 4
+  replicas: 1
   selector:
     matchLabels:
       app-name: config-server
@@ -57,7 +57,7 @@ kind: Deployment
 metadata:
   name: departments-server
 spec:
-  replicas: 4
+  replicas: 1
   selector:
     matchLabels:
       app-name: departments-server
