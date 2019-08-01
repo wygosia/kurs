@@ -146,7 +146,7 @@ kind: ConfigMap
 metadata:
   name: configuration-map
 data:
-  KAFKA_ADVERTISED_HOST_NAME: localhost
+  KAFKA_ADVERTISED_HOST_NAME: configuration-service
   KAFKA_ZOOKEEPER_CONNECT: localhost:2181
   KAFKA_SERVER: 'configuration-service'
   KAFKA_PORT: '9092'
