@@ -318,3 +318,20 @@ spec:
       targetPort: http
   selector:
     app-name: users
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: cloud-ingress
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /departments
+            backend:
+              serviceName: departments-service
+              servicePort: 80
+          - path: /users
+            backend:
+              serviceName: users-service
+              servicePort: 80
