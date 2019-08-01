@@ -323,15 +323,17 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: cloud-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   rules:
     - http:
         paths:
-          - path: /departments
+          - path: /departments(/|$)(.*)
             backend:
               serviceName: departments-service
               servicePort: 80
-          - path: /users
+          - path: /users(/|$)(.*)
             backend:
               serviceName: users-service
               servicePort: 80
