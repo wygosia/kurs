@@ -33,7 +33,7 @@ spec:
     spec:
       containers:
         - name: configuration-server
-          image: landrzejewski/departments
+          image: landrzejewski/configuration-server
           ports:
             - containerPort: 8888
           envFrom:
@@ -52,6 +52,16 @@ spec:
     - port: 9092
       targetPort: kafka
 ---
+
+departments-database:
+  image: postgres:12-alpine
+  environment:
+    - POSTGRES_DB=departments
+    - POSTGRES_USER=admin
+    - POSTGRES_PASSWORD=admin
+    - PGDATA=/var/lib/postgresql/data/db
+
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -68,7 +78,7 @@ spec:
     spec:
       containers:
         - name: departments-server
-          image: landrzejewski/configuration-server
+          image: landrzejewski/departments
           ports:
             - containerPort: 8000
           envFrom:
@@ -87,7 +97,60 @@ spec:
     - port: 8888
       targetPort: config-server
 ---
-
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: departments-volume
+spec:
+  resources:
+    requests:
+      storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app-name: postgres
+  template:
+    metadata:
+      name: postgres
+      labels:
+        app-name: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:11.1
+          ports:
+            - containerPort: 5432
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: configuration-map
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: storage
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: departments-volume
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: departments-database
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app-name: postgres
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -99,6 +162,10 @@ data:
   KAFKA_PORT: '9092'
   CONFIGURATION_SERVER: 'config-server-service'
   CONFIGURATION_SERVER_PORT: '8888'
+  DB_HOST: "departments-database"
+  POSTGRES_DB: departments
+  POSTGRES_USER: admin
+  POSTGRES_PASSWORD: admin
   SLEEP_TIME: '1'
   DEFAULT_PROFILE: 'production'
   
