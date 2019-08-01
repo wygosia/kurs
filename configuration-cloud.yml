@@ -78,7 +78,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: configuration-server-service
+  name: config-server-service
 spec:
   type: LoadBalancer
   selector:
@@ -97,8 +97,8 @@ data:
   KAFKA_ZOOKEEPER_CONNECT: localhost:2181
   KAFKA_SERVER: 'configuration-service'
   KAFKA_PORT: '9092'
-  CONFIGURATION_SERVER: configuration-server-service
-  CONFIGURATION_SERVER_PORT: 8888
+  CONFIGURATION_SERVER: 'config-server-service'
+  CONFIGURATION_SERVER_PORT: '8888'
   SLEEP_TIME: '1'
   DEFAULT_PROFILE: 'production'
   
